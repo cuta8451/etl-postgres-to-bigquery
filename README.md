@@ -1,32 +1,35 @@
 # ETL Pipeline: On-Prem MySQL to Cloud Analytics
 
 ## Project Overview
-This project demonstrates an end-to-end ETL pipeline starting from an on-premise relational database and preparing data for downstream analytics use cases.
+This project demonstrates an end-to-end ETL pipeline starting from an on-premise relational database and preparing data for downstream cloud analytics use cases.
 
-The project is designed to simulate real-world data engineering workflows, including schema design, transaction data modeling, and ETL-friendly database structures.
+The project is designed to simulate real-world data engineering workflows, including schema design, transaction data modeling, and incremental ETL pipeline development.
 
-Day 2 focuses on building a reliable on-prem MySQL schema as the foundation of the ETL pipeline.
+The implementation follows a step-by-step, day-based approach to clearly demonstrate how an ETL system is built from the ground up.
 
 ---
 
 ## Tech Stack
+**Current**
 - MySQL (On-Premise Database)
 - SQL
-- GitHub (Version Control)
-
-*Planned in later stages:*
 - Python
 - Pandas
+- SQLAlchemy
+- GitHub (Version Control)
+
+**Planned in later stages**
 - Google BigQuery
+- Cloud-based analytics and reporting
 
 ---
 
-## Data Flow (Planned)
+## Data Flow
 On-Prem MySQL → Python (ETL) → Cloud Data Warehouse → Analytics
 
 ---
 
-## Day 2: On-Prem MySQL Schema Design (Current Progress)
+## Day 2: On-Prem MySQL Schema Design
 
 ### Objectives
 - Design a production-oriented MySQL schema for ETL use
@@ -44,7 +47,7 @@ Represents customer master data extracted from upstream systems.
 Key characteristics:
 - `custid` as primary key
 - One record per customer
-- Used as a dimension table for analytics
+- Functions as a dimension table in analytics use cases
 
 #### 2. transactions
 Represents betting transaction records and serves as the fact table.
@@ -54,12 +57,12 @@ Key characteristics:
 - Time-based columns:
   - `transdate` (transaction time)
   - `winlostdate` (settlement time)
-- Optimized for analytical queries rather than customer lookups
+- Optimized for time-driven analytical queries rather than customer-centric lookups
 
 ---
 
 ### Index Design Strategy
-Indexes are designed based on actual ETL and reporting access patterns:
+Indexes are designed based on real ETL and reporting access patterns:
 
 - `idx_transdate`  
   Optimizes queries for recent transaction data (daily / weekly ETL jobs)
@@ -73,14 +76,20 @@ Customer-based indexes are intentionally omitted at this stage, as transaction a
 
 ### ETL Considerations
 - The schema supports idempotent ETL patterns using primary keys
-- Sample data is included to demonstrate realistic insert operations
+- Sample data is included to simulate realistic transaction ingestion
 - The database can be fully recreated using SQL scripts stored in the repository
 
 ---
 
-### Repository Structure (Relevant to Day 2)
-```text
+### Repository Structure (Day 3)
 .
-├── README.md
-└── sql/
-    └── mysql_schema.sql
+├── config/
+├── logs/
+├── sql/
+│   └── mysql_schema.sql
+├── src/
+│   ├── extract.py
+│   ├── transform.py
+│   ├── load.py
+│   └── main.py
+└── README.md
