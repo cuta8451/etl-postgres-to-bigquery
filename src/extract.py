@@ -1,12 +1,16 @@
+import os
 import pandas as pd
 from sqlalchemy import create_engine
+from dotenv import load_dotenv
+
+load_dotenv()  # 讀取 .env
 
 DB_CONFIG = {
-    "user": "root",
-    "password": "auro9053",
-    "host": "localhost",
-    "port": 3306,
-    "database": "etl_project"
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+    "database": os.getenv("DB_NAME")
 }
 
 def get_engine():
