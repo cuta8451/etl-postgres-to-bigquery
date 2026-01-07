@@ -81,15 +81,96 @@ Customer-based indexes are intentionally omitted at this stage, as transaction a
 
 ---
 
-### Repository Structure (Day 3)
+## Day 3: Data Extraction (Extract Layer)
+
+### Objectives
+- Connect Python to the on-prem MySQL database
+- Extract transaction data using a configurable date range
+- Return raw data as a Pandas DataFrame for downstream processing
+
+---
+
+### Extract Design
+The extract layer is responsible for reading raw data from MySQL without modifying business logic.
+
+Key characteristics:
+- Uses SQLAlchemy for database connectivity
+- Supports incremental extraction by `transdate`
+- Preserves source schema and values
+- Designed to be idempotent and re-runnable
+
+---
+
+### Extract Responsibilities
+- Database connection handling
+- SQL query construction
+- Raw data retrieval into Pandas
+
+No transformations are applied at this stage.
+
+---
+
+### Local Validation
+The extract module supports standalone execution for testing:
+
+```python
+if __name__ == "__main__":
+
+---
+
+### ✅ 新增 Day 4（Transform）
+
+```markdown
+---
+
+## Day 4: Data Transformation (Transform Layer)
+
+### Objectives
+- Normalize raw transaction data for analytics
+- Enforce consistent data types
+- Standardize business fields
+- Enrich records with ETL metadata
+
+---
+
+### Transform Design
+The transform layer converts raw extracted data into an analytics-ready format.
+
+Key transformations:
+- Datetime normalization (`transdate`, `winlostdate`)
+- Numeric coercion with safe error handling
+- Boolean normalization (`liveindicator`)
+- Status standardization (uppercase, trimmed)
+- ETL metadata enrichment (`etl_load_time` with company timezone)
+
+---
+
+### Design Principles
+- Pure function design (input → output)
+- No side effects on source data
+- Deterministic and idempotent transformations
+- Safe handling of dirty or malformed values
+
+---
+
+### Local Validation
+The transform module can be executed independently to:
+
+- Compare raw vs transformed schemas
+- Validate dtype consistency
+- Inspect transformation correctness
+
+---
+
+### Repository Structure
 .
 ├── config/
 ├── logs/
 ├── sql/
 │   └── mysql_schema.sql
 ├── src/
-│   ├── extract.py
-│   ├── transform.py
-│   ├── load.py
-│   └── main.py
+│   ├── extract.py      # Day 3: Extract layer
+│   ├── transform.py   # Day 4: Transform layer
+│   ├── load.py        # Day 5: Load layer (planned)
+│   └── main.py        # Pipeline orchestration
 └── README.md
