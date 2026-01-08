@@ -115,6 +115,7 @@ The extract module supports standalone execution for testing:
 
 ```python
 if __name__ == "__main__":
+```
 
 ---
 
@@ -162,6 +163,49 @@ The transform module can be executed independently to:
 
 ---
 
+## Day 5: Load to BigQuery (Cloud Load)
+
+### Objectives
+- Load transformed transaction data into Google BigQuery
+- Validate end-to-end ETL flow from on-prem MySQL to cloud warehouse
+- Establish a foundation for incremental and idempotent loading
+
+---
+
+### BigQuery Setup
+- BigQuery API enabled
+- Dataset created: `etl_demo`
+- Target table:
+  - `O_transactions`
+  - Schema auto-inferred from Pandas DataFrame
+
+---
+
+### Load Strategy
+- Data is loaded using BigQuery Python client
+- Load method: `load_table_from_dataframe`
+- Write disposition:
+  - `WRITE_APPEND`
+  - Future stages will introduce `MERGE` for idempotency
+
+---
+
+### Result
+- Successfully loaded transformed records into BigQuery
+- Schema correctly inferred for:
+  - Numeric fields
+  - Datetime fields
+  - Boolean fields
+- End-to-end pipeline validated
+
+---
+
+### Current Pipeline Status
+MySQL → Extract → Transform → **Load (BigQuery)** ✅
+
+
+---
+
 ### Repository Structure
 .
 ├── config/
@@ -171,6 +215,6 @@ The transform module can be executed independently to:
 ├── src/
 │   ├── extract.py      # Day 3: Extract layer
 │   ├── transform.py   # Day 4: Transform layer
-│   ├── load.py        # Day 5: Load layer (planned)
+│   ├── load.py        # Day 5: Load layer 
 │   └── main.py        # Pipeline orchestration
 └── README.md
