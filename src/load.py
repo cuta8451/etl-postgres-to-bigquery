@@ -1,31 +1,42 @@
 from google.cloud import bigquery
 import pandas as pd
+import uuid
 
-def load_to_bigquery(df: pd.DataFrame,   project_id: str,    dataset_id: str,    table_id: str):
+def load_to_bigquery_idempotent(df: pd.DataFrame,   project_id: str,    dataset_id: str,    target_table: str,):
     client = bigquery.Client(project=project_id)
 
-    table_ref = f"{project_id}.{dataset_id}.{table_id}"
+    # 1️⃣ staging table（每次跑都不一樣）
+    staging_table = f"_staging_transactions_{uuid.uuid4().hex}"
+    staging_ref = f"{project_id}.{dataset_id}.{staging_table}"
+    target_ref = f"{project_id}.{dataset_id}.{target_table}"
 
-    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND",)  # 先 append，Day 6 再談 MERGE
+    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE",)  # 如果目標 table 已存在：刪掉裡面所有資料，然後再寫入新資料
+    # 2️⃣ Load DataFrame → staging
+    load_job = client.load_table_from_dataframe(df, staging_ref, job_config=job_config,)
+    load_job.result()
 
-    job = client.load_table_from_dataframe(df, table_ref, job_config=job_config,)
+    # 3️⃣ MERGE（idempotent 核心）
+    merge_sql = f"""
+    MERGE `{target_ref}` T
+    USING `{staging_ref}` S
+    ON T.transid = S.transid
 
-    job.result()  # 等待 job 完成
+    WHEN MATCHED THEN
+      UPDATE SET
+        stake = S.stake,
+        status = S.status,
+        winlostdate = S.winlostdate,
+        actualrate = S.actualrate,
+        inserttime = S.inserttime,
+        etl_load_time = S.etl_load_time
 
-    print(f"Loaded {len(df)} rows into {table_ref}")
+    WHEN NOT MATCHED THEN
+      INSERT ROW
+    """
 
+    client.query(merge_sql).result()
 
-from extract import extract_transactions
-from transform import transform_transactions
-from load import load_to_bigquery
+    # 4️⃣ 清 staging table
+    client.delete_table(staging_ref, not_found_ok=True)
 
-if __name__ == "__main__":
-    df_raw = extract_transactions("2025-12-24", "2025-12-24")
-    df_transformed = transform_transactions(df_raw)
-
-    load_to_bigquery(
-        df=df_transformed,
-        project_id="data-platform-483701",
-        dataset_id="etl_demo",
-        table_id="O_transactions",
-    )
+    print(f"MERGE completed into {target_ref}")

@@ -1,31 +1,37 @@
 # ETL Pipeline: On-Prem MySQL to Cloud Analytics
 
 ## Project Overview
-This project demonstrates an end-to-end ETL pipeline starting from an on-premise relational database and preparing data for downstream cloud analytics use cases.
+This project demonstrates an end-to-end ETL pipeline that ingests transactional data
+from an on-premise MySQL database and loads it into Google BigQuery for cloud analytics.
 
-The project is designed to simulate real-world data engineering workflows, including schema design, transaction data modeling, and incremental ETL pipeline development.
+The project is designed to simulate real-world data engineering workflows, including:
 
-The implementation follows a step-by-step, day-based approach to clearly demonstrate how an ETL system is built from the ground up.
+- Relational schema design
+- Incremental data extraction
+- Deterministic data transformation
+- Idempotent cloud data loading
+
+The implementation follows a step-by-step, day-based approach to clearly illustrate
+how a production-grade ETL system is built from the ground up.
 
 ---
 
 ## Tech Stack
+
 **Current**
 - MySQL (On-Premise Database)
 - SQL
 - Python
 - Pandas
 - SQLAlchemy
-- GitHub (Version Control)
-
-**Planned in later stages**
 - Google BigQuery
-- Cloud-based analytics and reporting
+- Google Cloud SDK
+- GitHub (Version Control)
 
 ---
 
 ## Data Flow
-On-Prem MySQL → Python (ETL) → Cloud Data Warehouse → Analytics
+On-Prem MySQL → Python (ETL) → Google BigQuery → Analytics / BI
 
 ---
 
@@ -42,12 +48,12 @@ On-Prem MySQL → Python (ETL) → Cloud Data Warehouse → Analytics
 The on-prem database `etl_project` contains two core tables:
 
 #### 1. customers
-Represents customer master data extracted from upstream systems.
+Represents customer master data.
 
 Key characteristics:
 - `custid` as primary key
 - One record per customer
-- Functions as a dimension table in analytics use cases
+- Functions as a dimension table
 
 #### 2. transactions
 Represents betting transaction records and serves as the fact table.
@@ -57,27 +63,20 @@ Key characteristics:
 - Time-based columns:
   - `transdate` (transaction time)
   - `winlostdate` (settlement time)
-- Optimized for time-driven analytical queries rather than customer-centric lookups
+- Optimized for time-driven analytics
 
 ---
 
 ### Index Design Strategy
-Indexes are designed based on real ETL and reporting access patterns:
+Indexes are designed based on actual ETL and reporting access patterns:
 
 - `idx_transdate`  
-  Optimizes queries for recent transaction data (daily / weekly ETL jobs)
+  Optimizes incremental extraction (daily / weekly ETL jobs)
 
 - `idx_winlostdate`  
-  Optimizes settlement-based reporting and reconciliation processes
+  Optimizes settlement-based reporting
 
-Customer-based indexes are intentionally omitted at this stage, as transaction analysis is primarily time-driven.
-
----
-
-### ETL Considerations
-- The schema supports idempotent ETL patterns using primary keys
-- Sample data is included to simulate realistic transaction ingestion
-- The database can be fully recreated using SQL scripts stored in the repository
+Customer-based indexes are intentionally omitted, as analytics are primarily time-driven.
 
 ---
 
@@ -86,12 +85,13 @@ Customer-based indexes are intentionally omitted at this stage, as transaction a
 ### Objectives
 - Connect Python to the on-prem MySQL database
 - Extract transaction data using a configurable date range
-- Return raw data as a Pandas DataFrame for downstream processing
+- Return raw data as a Pandas DataFrame
 
 ---
 
 ### Extract Design
-The extract layer is responsible for reading raw data from MySQL without modifying business logic.
+The extract layer is responsible for **reading raw data only**, without applying
+any business logic or transformations.
 
 Key characteristics:
 - Uses SQLAlchemy for database connectivity
@@ -101,27 +101,13 @@ Key characteristics:
 
 ---
 
-### Extract Responsibilities
+### Responsibilities
 - Database connection handling
 - SQL query construction
 - Raw data retrieval into Pandas
 
 No transformations are applied at this stage.
 
----
-
-### Local Validation
-The extract module supports standalone execution for testing:
-
-```python
-if __name__ == "__main__":
-```
-
----
-
-### ✅ 新增 Day 4（Transform）
-
-```markdown
 ---
 
 ## Day 4: Data Transformation (Transform Layer)
@@ -142,7 +128,7 @@ Key transformations:
 - Numeric coercion with safe error handling
 - Boolean normalization (`liveindicator`)
 - Status standardization (uppercase, trimmed)
-- ETL metadata enrichment (`etl_load_time` with company timezone)
+- ETL metadata enrichment (`etl_load_time`, company timezone)
 
 ---
 
@@ -150,71 +136,87 @@ Key transformations:
 - Pure function design (input → output)
 - No side effects on source data
 - Deterministic and idempotent transformations
-- Safe handling of dirty or malformed values
+- Safe handling of malformed or dirty values
 
 ---
 
-### Local Validation
-The transform module can be executed independently to:
-
-- Compare raw vs transformed schemas
-- Validate dtype consistency
-- Inspect transformation correctness
-
----
-
-## Day 5: Load to BigQuery (Cloud Load)
+## Day 5: Load to BigQuery (Initial Load)
 
 ### Objectives
-- Load transformed transaction data into Google BigQuery
-- Validate end-to-end ETL flow from on-prem MySQL to cloud warehouse
-- Establish a foundation for incremental and idempotent loading
-
----
-
-### BigQuery Setup
-- BigQuery API enabled
-- Dataset created: `etl_demo`
-- Target table:
-  - `O_transactions`
-  - Schema auto-inferred from Pandas DataFrame
+- Load transformed data into Google BigQuery
+- Validate end-to-end ETL connectivity
+- Establish cloud warehouse schema
 
 ---
 
 ### Load Strategy
-- Data is loaded using BigQuery Python client
-- Load method: `load_table_from_dataframe`
-- Write disposition:
-  - `WRITE_APPEND`
-  - Future stages will introduce `MERGE` for idempotency
+- Data loaded using BigQuery Python client
+- Method: `load_table_from_dataframe`
+- Write disposition: `WRITE_APPEND`
+
+This stage validates the full pipeline from on-prem MySQL to BigQuery.
 
 ---
 
 ### Result
-- Successfully loaded transformed records into BigQuery
-- Schema correctly inferred for:
-  - Numeric fields
-  - Datetime fields
-  - Boolean fields
-- End-to-end pipeline validated
+- BigQuery dataset created: `etl_demo`
+- Table created: `O_transactions`
+- Schema auto-inferred from Pandas DataFrame
+- End-to-end ETL flow successfully validated
+
+---
+
+## Day 6: Idempotent Load with MERGE (Production-Grade)
+
+### Objectives
+- Prevent duplicate data during re-runs
+- Support incremental and backfill ETL
+- Align with production data engineering best practices
+
+---
+
+### Idempotent Load Strategy
+Instead of appending directly to the target table, the pipeline now uses:
+
+1. A temporary **staging table** (unique per run)
+2. A BigQuery `MERGE` statement using `transid` as the natural key
+
+---
+
+### MERGE Logic
+- **WHEN MATCHED**  
+  Update mutable fields (status, stake, settlement time, etc.)
+- **WHEN NOT MATCHED**  
+  Insert new records
+
+This ensures:
+- Safe re-runs
+- No duplicate `transid`
+- Deterministic outcomes
+
+---
+
+### Billing & Execution
+- BigQuery billing enabled (required for DML operations)
+- All load and merge jobs are executed synchronously
+  using `.result()` to ensure correctness
 
 ---
 
 ### Current Pipeline Status
-MySQL → Extract → Transform → **Load (BigQuery)** ✅
-
+MySQL → Extract → Transform → Load → **MERGE (Idempotent)** ✅
 
 ---
 
-### Repository Structure
+## Repository Structure
 .
 ├── config/
 ├── logs/
 ├── sql/
-│   └── mysql_schema.sql
+│ └── mysql_schema.sql
 ├── src/
-│   ├── extract.py      # Day 3: Extract layer
-│   ├── transform.py   # Day 4: Transform layer
-│   ├── load.py        # Day 5: Load layer 
-│   └── main.py        # Pipeline orchestration
+│ ├── extract.py # Day 3: Extract layer
+│ ├── transform.py # Day 4: Transform layer
+│ ├── load.py # Day 5 & 6: BigQuery load & MERGE
+│ └── main.py # Pipeline orchestration
 └── README.md
