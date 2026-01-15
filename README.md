@@ -217,15 +217,61 @@ to support efficient daily ETL execution and cost-effective analytics.
 - Clustered by frequently queried dimensions (sporttype)
 - MERGE operations now target the partitioned table
 
-## Repository Structure
+---
+## Day 8: Pipeline Orchestration & Logging Skeleton
+
+### Objectives
+- Refactor `main.py` into a clean pipeline orchestrator
+- Introduce a centralized logging mechanism
+- Ensure pipeline execution is traceable and observable
+- Prepare the foundation for error handling and scheduling
+
+---
+
+### Orchestration Design
+The `main.py` file is refactored to act as a **pure orchestrator**, responsible only for:
+
+- Defining pipeline execution order
+- Coordinating Extract → Transform → Load steps
+- Recording high-level pipeline progress via logs
+
+Business logic remains encapsulated within individual modules (`extract`, `transform`, `load`).
+
+---
+
+### Logging Skeleton
+A reusable logging utility is introduced via `logger.py`.
+
+Key characteristics:
+- Centralized logger configuration
+- File-based logging (`logs/etl.log`)
+- Standardized log format: timestamp | level | logger_name | message 
+- INFO-level logging for pipeline milestones
+
+---
+
+### Logged Events
+The pipeline now records:
+
+- Pipeline start and completion
+- Start and completion of each ETL step
+- Number of records extracted
+- Successful execution confirmation
+
+This enables post-run inspection without relying on console output.
+
+---
+
+### Repository Structure (Day 8 Update)
+```text
 .
-├── config/
 ├── logs/
-├── sql/
-│ └── mysql_schema.sql
+│   ├── .gitkeep        # Preserve log directory in Git
+│   └── etl.log         # Runtime-generated pipeline logs
 ├── src/
-│ ├── extract.py # Day 3: Extract layer
-│ ├── transform.py # Day 4: Transform layer
-│ ├── load.py # Day 5 & 6: BigQuery load & MERGE
-│ └── main.py # Pipeline orchestration
+│   ├── extract.py
+│   ├── transform.py
+│   ├── load.py
+│   ├── logger.py       # Centralized logging utility
+│   └── main.py         # Clean pipeline orchestrator
 └── README.md
