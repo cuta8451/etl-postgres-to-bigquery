@@ -208,6 +208,15 @@ MySQL → Extract → Transform → Load → **MERGE (Idempotent)** ✅
 
 ---
 
+## Day 7: BigQuery Partition & Clustering
+
+The raw transaction table was upgraded to a partitioned and clustered BigQuery table
+to support efficient daily ETL execution and cost-effective analytics.
+
+- Partitioned by `DATE(transdate)`
+- Clustered by frequently queried dimensions (sporttype)
+- MERGE operations now target the partitioned table
+
 ## Repository Structure
 .
 ├── config/

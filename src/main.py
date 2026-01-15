@@ -10,5 +10,5 @@ if __name__ == "__main__":
         df=df_transformed,
         project_id="data-platform-483701",
         dataset_id="etl_demo",
-        target_table="O_transactions",
+        target_table="O_transactions_p",
     )
